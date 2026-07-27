@@ -3,18 +3,80 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <title>OVERWATCH — Tactical Shooter</title>
+    <title>Strike Legion</title>
+    <meta name="theme-color" content="#0a0c0f" />
     <style>
       :root { color-scheme: dark; }
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-      body { font-family: "Inter", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+          Inter, "Segoe UI", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
       #game { display: block; width: 100vw; height: 100vh; touch-action: none; cursor: none; }
+
+      /* ---- boot splash -----------------------------------------------------
+         Sits above the canvas until the engine reports ready, then dissolves.
+         Deliberately quiet: a centred lockup, a hairline determinate track and
+         one line of status. */
+      #sl-boot {
+        position: fixed; inset: 0; z-index: 60;
+        display: grid; place-items: center;
+        background:
+          radial-gradient(ellipse 120% 90% at 50% 42%, #14181d 0%, #06080a 62%, #000 100%);
+        transition: opacity .55s cubic-bezier(.32,.72,0,1);
+      }
+      #sl-boot.sl-done { opacity: 0; pointer-events: none; }
+
+      .sl-boot-stack { display: flex; flex-direction: column; align-items: center; gap: 26px; }
+      .sl-lockup { display: flex; align-items: center; gap: 14px; }
+      .sl-mark { width: 34px; height: 34px; display: block; }
+      .sl-wordmark {
+        font-size: 27px; font-weight: 600; letter-spacing: .015em;
+        color: #f2f5f8; line-height: 1;
+      }
+      .sl-wordmark span { font-weight: 300; color: rgba(233,240,246,.62); }
+
+      .sl-track {
+        width: 232px; height: 2px; border-radius: 2px;
+        background: rgba(255,255,255,.10); overflow: hidden;
+      }
+      .sl-fill {
+        height: 100%; width: 0%; border-radius: 2px;
+        background: linear-gradient(90deg, #5b6b7a, #e8eef4);
+        transition: width .35s cubic-bezier(.32,.72,0,1);
+      }
+      .sl-status {
+        font-size: 11px; font-weight: 500; letter-spacing: .07em;
+        color: rgba(226,236,244,.42); font-variant-numeric: tabular-nums;
+      }
     </style>
   </head>
   <body>
     <canvas id="game"></canvas>
     <div id="ui"></div>
+
+    <div id="sl-boot">
+      <div class="sl-boot-stack">
+        <div class="sl-lockup">
+          <!-- SL monogram: a legion chevron cut from a rounded-square field. -->
+          <svg class="sl-mark" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <rect x="1.5" y="1.5" width="45" height="45" rx="13"
+                  stroke="rgba(240,246,251,.30)" stroke-width="2.2"/>
+            <path d="M15 30.5 L24 15 L33 30.5" stroke="#f2f6fb" stroke-width="3.4"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18.5 35.5 H33" stroke="rgba(240,246,251,.55)" stroke-width="3.0"
+                  stroke-linecap="round"/>
+          </svg>
+          <div class="sl-wordmark">Strike<span>Legion</span></div>
+        </div>
+        <div class="sl-track"><div class="sl-fill" id="sl-fill"></div></div>
+        <div class="sl-status" id="sl-status">Initialising</div>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

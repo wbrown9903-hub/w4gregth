@@ -1,10 +1,79 @@
-# Claude of Duty
+# Strike Legion
 
-> **Provenance.** This repository is a port of
-> [mshumer/Claude-of-Duty](https://github.com/mshumer/Claude-of-Duty), used under the
-> MIT License (see `LICENSE`, © 2026 mshumer). The upstream project is the original
-> work; everything below the "Fork changes" section documents modifications made
-> here. Original README follows.
+A browser first-person shooter — Three.js r180 + WebGL2, every asset generated
+procedurally at load time.
+
+```bash
+npm install
+npm run dev          # http://127.0.0.1:5173
+```
+
+Click the canvas to lock the cursor. **WASD** move · **mouse** aim · **LMB** fire ·
+**RMB** ADS · **R** reload · **Shift** sprint · **Ctrl** crouch · **Space** jump ·
+**Q/E** lean · **Esc** pause.
+
+---
+
+## Fork changes
+
+This repository is a port of
+[mshumer/Claude-of-Duty](https://github.com/mshumer/Claude-of-Duty), used under the
+MIT License (see `LICENSE`, © 2026 mshumer). The upstream project is the original
+work. Changes made here:
+
+**Branding — Strike Legion.** Boot splash with the SL chevron lockup, window title,
+pause-menu lockup, and a persistent low-ink HUD watermark.
+
+**House design language.** The HUD and menus were restyled onto a system-native
+type ramp (SF on Apple hardware, the platform stack elsewhere) set mostly in
+sentence case, with hierarchy carried by weight and optical size rather than
+letterspaced uppercase. The pause menu is a centred frosted card with a single
+accent colour, an iOS-style segmented control, and round-knob sliders.
+*No third-party trademarks or logos are used — this is a design language, not a
+brand association.*
+
+**Strike Legion field hardware in-world.** Milled-aluminium-and-glass display
+panels, tablets and comms pods (`src/world/props.js`), deliberately sparse so the
+deployed kit contrasts against a street built from rust and splinters.
+
+**Two rendering fixes to the viewmodel**, which every upstream critic round flagged
+as the weakest element in frame:
+
+- *Self-shadowing.* All five view-scene rig lights and every viewmodel and hand
+  mesh had `castShadow = false`, so the weapon received five unshadowed lobes and
+  had no form at all — no occlusion under the handguard, none cast across the
+  receiver by the optic, no separation between individually-modelled fingers. The
+  key light now casts within the view scene (never into the world cascades).
+- *Lighting ratio.* Fill + rim + hemisphere + bounce summed to **1.30× the key** —
+  more fill than key, which is how you light a subject to remove its form. Retuned
+  to 0.72× (key:fill ≈ 1.4:1), which also drops viewmodel irradiance ~25%. That is
+  the same direction as the upstream note recording that a sleeve at *zero albedo*
+  still rendered cream, i.e. F0=0.04 specular alone was carrying the surface.
+
+Measured in isolation, the shadow change moved 1.08% of pixels and the ratio fix
+7.43% — the two are the same defect seen from different sides, and sequencing them
+separately is what isolated that.
+
+**Portable capture harness.** The tooling assumed an Apple-silicon host and could
+not produce a frame anywhere else. `tools/gpuargs.mjs` centralises the Chromium GPU
+flags (Metal on macOS, SwiftShader elsewhere); `tools/grab.mjs` captures via CDP
+`Page.captureScreenshot`, because Playwright's `page.screenshot()` awaits
+`document.fonts.ready`, which never settles in a container with no system fonts;
+Playwright is pinned to 1.56.0 to match the available Chromium build; and
+`shotset.mjs` boot timeout is now configurable, 90s being a coin flip under
+software rasterisation.
+
+### Honest status
+
+Upstream's own assessment — eleven adversarial critics, blind A/B against real
+Call of Duty frames, ceiling 5.05/10, every critic picking the real frame every
+round — still stands. The fixes above improve the weakest element; they do not
+change that verdict. The binding constraints are structural: zero art assets, no
+real GI, and a browser frame budget.
+
+---
+
+## Upstream README
 
 A first-person shooter built in the browser with Three.js r180 and WebGL2. Roughly
 55k lines across 11 subsystems, written by a fleet of AI agents under orchestration.

@@ -90,6 +90,20 @@ export class UiSystem {
     this.ammo = new AmmoPanel(this.chromeLayer);
     this.prompt = new Prompt(this.chromeLayer);
     this.banner = new Banner(this.chromeLayer);
+
+    // Persistent house mark, bottom-left, well under the ink level of anything
+    // gameplay-critical so it never competes with the HUD for attention.
+    this.brand = el('div', 'ow-watermark', this.chromeLayer);
+    this.brand.innerHTML =
+      '<svg viewBox="0 0 48 48" fill="none" aria-hidden="true">' +
+      '<rect x="1.5" y="1.5" width="45" height="45" rx="13" stroke="currentColor" ' +
+      'stroke-opacity=".45" stroke-width="2.2"/>' +
+      '<path d="M15 30.5 L24 15 L33 30.5" stroke="currentColor" stroke-width="3.4" ' +
+      'stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M18.5 35.5 H33" stroke="currentColor" stroke-opacity=".6" ' +
+      'stroke-width="3" stroke-linecap="round"/></svg>' +
+      '<span>Strike<em>Legion</em></span>';
+
     this.menu = new PauseMenu(this.root, ctx);
 
     this.health.onBeat = (i) => this.sfx('heartbeat', 0.35 + i * 0.5);

@@ -19,9 +19,22 @@ export class PauseMenu {
     this.root = el('div', 'ow-menu', parent);
     const inner = el('div', 'ow-menu-inner', this.root);
 
+    // Brand lockup. SVG has to go in as markup — `el` builds HTML elements and
+    // createElement('svg') would land in the wrong namespace.
+    const brand = el('div', 'ow-brand', inner);
+    brand.innerHTML =
+      '<svg class="ow-brand-mark" viewBox="0 0 48 48" fill="none" aria-hidden="true">' +
+      '<rect x="1.5" y="1.5" width="45" height="45" rx="13" stroke="currentColor" ' +
+      'stroke-opacity=".32" stroke-width="2.2"/>' +
+      '<path d="M15 30.5 L24 15 L33 30.5" stroke="currentColor" stroke-width="3.4" ' +
+      'stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M18.5 35.5 H33" stroke="currentColor" stroke-opacity=".58" ' +
+      'stroke-width="3" stroke-linecap="round"/></svg>' +
+      '<span class="ow-brand-word">Strike<em>Legion</em></span>';
+
     const h = el('h1', null, inner, 'Paused');
-    h.textContent = 'PAUSED';
-    el('div', 'sub', inner, 'OVERWATCH — TACTICAL OPERATIONS');
+    h.textContent = 'Paused';
+    el('div', 'sub', inner, 'Tactical Operations');
     el('div', 'rule', inner);
 
     this.rows = el('div', null, inner);

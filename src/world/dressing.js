@@ -1427,6 +1427,13 @@ function dressBuilding(A, rng, info) {
       const dx = (rng.float() < 0.5 ? -1 : 1) * (wnd.w / 2 + 0.55);
       const wp = worldOf(pm, wnd.x + dx, wnd.y - 0.35, -0.36);
       A.put('ac_unit', wp[0], wp[1], wp[2], ryOf(pm) + Math.PI, 1, [1, rng.range(0.8, 1.3), 1]);
+    } else if (rng.float() < 0.12) {
+      // Occasional Strike Legion display panel bracketed beside a window. Rare
+      // on purpose: deployed kit reads as deployed only while it is sparse.
+      const dx = (rng.float() < 0.5 ? -1 : 1) * (wnd.w / 2 + 0.48);
+      const wp = worldOf(pm, wnd.x + dx, wnd.y - 0.2, -0.1);
+      A.put(rng.float() < 0.5 ? 'sl_panel' : 'sl_panel_sm', wp[0], wp[1], wp[2],
+        ryOf(pm) + Math.PI, 1, [1, 1, 1]);
       // condensate runs down the render below the unit: a narrow grime streak
       const runH = wnd.y - 1.1;
       if (runH > 0.5) {

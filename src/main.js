@@ -31,6 +31,35 @@ const config = createConfig({
 
 const canvas = document.getElementById('game');
 
+/*
+ * Boot splash.
+ *
+ * In capture mode the node is removed outright rather than faded: an overlay
+ * mid-transition would composite into the shot, and boot-duration couplings
+ * leaking into pixels is exactly the class of bug the prewarm notes below
+ * describe. Nothing about the splash may depend on wall-clock timing.
+ */
+const bootEl = document.getElementById('sl-boot');
+const bootFill = document.getElementById('sl-fill');
+const bootStatus = document.getElementById('sl-status');
+if (capture) bootEl?.remove();
+
+const setBoot = (pct, label) => {
+  if (!bootEl || capture) return;
+  if (bootFill) bootFill.style.width = `${Math.round(pct * 100)}%`;
+  if (bootStatus && label) bootStatus.textContent = label;
+};
+
+const dismissBoot = () => {
+  if (!bootEl || capture) return;
+  setBoot(1, 'Ready');
+  bootEl.classList.add('sl-done');
+  // Matches the 0.55s CSS transition; removing it frees the compositor layer.
+  setTimeout(() => bootEl.remove(), 700);
+};
+
+setBoot(0.05, 'Loading systems');
+
 const engine = new Engine({ canvas, config });
 
 // Registration order is irrelevant — Registry topo-sorts on static deps.
@@ -49,8 +78,10 @@ engine
 
 try {
   await engine.init();
+  setBoot(0.6, 'Compiling shaders');
 } catch (err) {
   console.error('[boot] init failed', err);
+  if (bootStatus) bootStatus.textContent = 'Boot failed';
   document.body.insertAdjacentHTML(
     'beforeend',
     `<pre style="position:fixed;inset:0;padding:2rem;color:#f66;background:#000;
@@ -79,6 +110,7 @@ const shotApi = installShotApi(engine, { capture, lockstep });
 const warmup = params.get('prewarm') === '0' ? { ok: false, reason: 'disabled by ?prewarm=0' } : await prewarm(engine);
 console.info('[boot] prewarm', warmup);
 window.__PREWARM__ = warmup;
+setBoot(0.92, 'Entering theatre');
 
 engine.start();
 
@@ -92,11 +124,13 @@ const BOOT_FRAMES = 3;
 if (lockstep) {
   await shotApi.pump(BOOT_FRAMES);
   window.__READY__ = true;
+  dismissBoot();
 } else {
   let warm = 0;
   const readyProbe = () => {
     if (++warm >= BOOT_FRAMES) {
       window.__READY__ = true;
+      dismissBoot();
       return;
     }
     requestAnimationFrame(readyProbe);

@@ -900,6 +900,51 @@ export function burntCar(rng) {
  * Register every instanced prototype. Called once, before the level is built.
  * Prototype ids are the vocabulary dressing.js and interiors.js draw from.
  */
+/**
+ * STRIKE LEGION field hardware.
+ *
+ * The deployed kit is deliberately the odd thing out in this street: where
+ * everything else is rusted, splintered or sun-bleached, this is milled
+ * aluminium and glass with a single continuous radius on every corner. That
+ * contrast is the point — you should be able to tell at a glance which objects
+ * belong to the operator and which belong to the block.
+ *
+ * Built from chamfered boxes with an unusually large chamfer, which is what
+ * reads as a machined radius rather than a bevelled game asset.
+ */
+
+/** Wall-mounted glass display slab. Aluminium body, inset glass front. */
+function slPanel(rng, w = 0.62) {
+  const h = w * 0.66;
+  const body = chamferBox(w, h, 0.045, 0.016, 1);
+  // Glass sits proud of the housing by a hair so it catches its own specular
+  // edge instead of z-fighting the bezel.
+  const glass = chamferBox(w - 0.055, h - 0.055, 0.006, 0.004, 1);
+  glass.translate(0, 0, 0.026);
+  const mount = chamferBox(w * 0.3, h * 0.24, 0.05, 0.012, 1);
+  mount.translate(0, -h * 0.5 - 0.01, -0.03);
+  return mergeSimple([body, glass, mount]);
+}
+
+/** Slim slab that lies on tables and crates. */
+function slTablet(rng, w = 0.23) {
+  const h = w * 1.42;
+  const body = chamferBox(w, 0.009, h, 0.0035, 1);
+  const screen = chamferBox(w - 0.018, 0.002, h - 0.018, 0.0015, 1);
+  screen.translate(0, 0.006, 0);
+  return mergeSimple([body, screen]);
+}
+
+/** Rounded field beacon / comms pod. */
+function slPod(rng, r = 0.075) {
+  const shell = tubeY(r, r * 0.94, 0.19, 20, true);
+  const cap = tubeY(r * 0.62, r * 0.62, 0.012, 20, true);
+  cap.translate(0, 0.1, 0);
+  const base = tubeY(r * 1.04, r * 1.04, 0.016, 20, true);
+  base.translate(0, -0.096, 0);
+  return mergeSimple([shell, cap, base]);
+}
+
 export function registerProps(A, rngIn) {
   const rng = rngIn;
   const P = (id, key, geo, opts = {}) => A.proto(id, { geo, key, ...opts });
@@ -946,6 +991,13 @@ export function registerProps(A, rngIn) {
   P('mattress', 'fabric_cream', mattress(rng), LOOSE(0.06, 0.01));
   P('chair', 'wood_prop', chair(rng), LOOSE(0.05, 0.012));
   P('cabinet', 'wood_prop_dark', cabinet(rng), { skirt: 0.42 });
+
+  // Strike Legion deployed hardware — machined aluminium and glass, the one
+  // clean material family in a street made of rust and splinters.
+  P('sl_panel', 'metal_brushed', slPanel(rng), { chunk: false });
+  P('sl_panel_sm', 'metal_brushed', slPanel(rng, 0.42), { chunk: false });
+  P('sl_tablet', 'metal_brushed', slTablet(rng), LOOSE(0.06, 0.002));
+  P('sl_pod', 'metal_brushed', slPod(rng), LOOSE(0.04, 0.004));
 
   // services
   P('ac_unit', 'metal_dark', acUnit(rng));

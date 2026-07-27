@@ -32,6 +32,10 @@ const CSS = `
   --hair:  rgba(255,255,255,.15);
   --hair-2:rgba(255,255,255,.07);
 
+  /* One accent, used for interactive state only (slider fills, active rows).
+     Threat/caution keep their own semantics below. */
+  --accent: #0a84ff;
+
   --amber: #ffb02a;
   --red:   #ff3f31;
   --blood: #8d0f0a;
@@ -598,64 +602,105 @@ const CSS = `
 }
 
 /* ================================================================== menu */
+/* ---- pause menu ------------------------------------------------------------
+   STRIKE LEGION house style: a centred frosted card rather than a full-bleed
+   slab, hierarchy carried by weight and size instead of letterspaced uppercase,
+   generous internal padding, continuous-feeling corner radii, and exactly one
+   accent colour. Motion is a short spring-ish ease, never a linear fade. */
 .ow-menu {
   position:absolute; inset:0; pointer-events:auto;
-  background: linear-gradient(105deg, rgba(4,6,8,.90) 0%, rgba(4,6,8,.72) 46%, rgba(4,6,8,.42) 100%);
-  backdrop-filter: blur(calc(9px * var(--k))) saturate(.7) brightness(.8);
+  display:grid; place-items:center;
+  background: rgba(6,8,11,.56);
+  backdrop-filter: blur(calc(26px * var(--k))) saturate(1.7);
+  -webkit-backdrop-filter: blur(calc(26px * var(--k))) saturate(1.7);
   opacity:0; will-change: opacity;
 }
 .ow-menu-inner {
-  position:absolute; left: calc(var(--u) * 22); top:50%;
-  transform: translateY(-50%);
-  width: calc(430px * var(--k));
-  padding-left: calc(var(--u) * 4.5);
-  border-left: calc(2px * var(--k)) solid var(--amber);
+  width: calc(468px * var(--k));
+  max-height: 86vh; overflow-y:auto;
+  padding: calc(var(--u) * 8) calc(var(--u) * 8) calc(var(--u) * 6.5);
+  background: rgba(28,32,38,.72);
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: calc(22px * var(--k));
+  box-shadow:
+    0 calc(28px * var(--k)) calc(70px * var(--k)) rgba(0,0,0,.62),
+    inset 0 1px 0 rgba(255,255,255,.07);
 }
+.ow-brand { display:flex; align-items:center; gap: calc(var(--u) * 2.6); color: var(--ink); }
+.ow-brand-mark { width: calc(26px * var(--k)); height: calc(26px * var(--k)); display:block; }
+.ow-brand-word {
+  font-family: var(--fd); font-size: calc(18px * var(--k));
+  font-weight:600; letter-spacing:.012em; color: var(--ink);
+}
+.ow-brand-word em { font-style:normal; font-weight:300; color: var(--ink-2); }
 .ow-menu h1 {
+  margin-top: calc(var(--u) * 5);
   font-family: var(--fd);
-  font-size: calc(46px * var(--k)); font-weight:700; letter-spacing:.3em;
-  text-shadow: 0 2px 6px rgba(0,0,0,.8);
+  font-size: calc(32px * var(--k)); font-weight:600; letter-spacing:-.015em;
+  text-shadow:none;
 }
 .ow-menu .sub {
-  margin-top: calc(var(--u) * 1.2); font-size: calc(10px * var(--k));
-  letter-spacing:.28em; color: var(--ink-3);
+  margin-top: calc(var(--u) * .6); font-size: calc(13px * var(--k));
+  font-weight:400; letter-spacing:0; color: var(--ink-3); text-transform:none;
 }
 .ow-menu .rule {
-  margin: calc(var(--u) * 5) 0 calc(var(--u) * 2); height:1px;
-  background: linear-gradient(to right, rgba(255,255,255,.28), rgba(255,255,255,0));
+  margin: calc(var(--u) * 5) 0 calc(var(--u) * 1); height:1px;
+  background: rgba(255,255,255,.09);
 }
 .ow-row {
   display:flex; align-items:center; justify-content:space-between;
-  gap: calc(var(--u) * 4); padding: calc(var(--u) * 3.2) 0;
-  border-bottom: 1px solid var(--hair-2);
+  gap: calc(var(--u) * 4); padding: calc(var(--u) * 3.4) 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
 }
-.ow-row > .name { font-size: calc(11.5px * var(--k)); letter-spacing:.2em; color: var(--ink); }
-.ow-row > .val { font-family: var(--fm); font-size: calc(11px * var(--k)); color: var(--amber);
-  letter-spacing:.04em; min-width: calc(46px * var(--k)); text-align:right; }
-.ow-seg { display:flex; gap:0; }
+.ow-row:last-child { border-bottom:0; }
+.ow-row > .name {
+  font-size: calc(13.5px * var(--k)); font-weight:450; letter-spacing:0;
+  color: var(--ink); text-transform:none;
+}
+.ow-row > .val {
+  font-family: var(--ff); font-size: calc(13px * var(--k)); font-weight:500;
+  color: var(--ink-2); font-variant-numeric: tabular-nums;
+  letter-spacing:0; min-width: calc(46px * var(--k)); text-align:right;
+}
+/* iOS-style segmented control: one recessed track, the selection a raised pill. */
+.ow-seg {
+  display:flex; gap:0; padding: calc(2px * var(--k));
+  background: rgba(255,255,255,.07);
+  border-radius: calc(9px * var(--k));
+}
 .ow-seg button {
-  appearance:none; border:1px solid var(--hair); border-right:0; background:rgba(255,255,255,.03);
-  color: var(--ink-2); font-family:var(--ff); font-weight:600; text-transform:uppercase;
-  font-size: calc(10px * var(--k)); letter-spacing:.16em;
-  padding: calc(var(--u) * 1.3) calc(var(--u) * 2.2);
-  cursor:pointer; position:relative; transition: color .12s, background .12s;
+  appearance:none; border:0; background:transparent;
+  color: var(--ink-2); font-family:var(--ff); font-weight:500; text-transform:capitalize;
+  font-size: calc(12.5px * var(--k)); letter-spacing:0;
+  padding: calc(var(--u) * 1.2) calc(var(--u) * 2.6);
+  border-radius: calc(7px * var(--k));
+  cursor:pointer; position:relative;
+  transition: color .18s ease, background .18s ease, box-shadow .18s ease;
 }
-.ow-seg button:last-child { border-right:1px solid var(--hair); }
-.ow-seg button:hover { color: var(--ink); background: rgba(255,255,255,.07); }
-.ow-seg button.on { color:#0b0d0f; background: var(--ink); }
+.ow-seg button:hover { color: var(--ink); }
+.ow-seg button.on {
+  color: var(--ink);
+  background: rgba(255,255,255,.16);
+  box-shadow: 0 1px 3px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.10);
+}
 .ow-slider { position:relative; width: calc(190px * var(--k)); height: calc(18px * var(--k)); }
 .ow-slider .track {
-  position:absolute; left:0; right:0; top:50%; height: calc(2px * var(--k));
-  transform: translateY(-50%); background: rgba(255,255,255,.16);
+  position:absolute; left:0; right:0; top:50%; height: calc(4px * var(--k));
+  transform: translateY(-50%); background: rgba(255,255,255,.14);
+  border-radius: calc(2px * var(--k));
 }
 .ow-slider .fill {
-  position:absolute; left:0; top:50%; height: calc(2px * var(--k));
-  transform: translateY(-50%); background: var(--amber);
+  position:absolute; left:0; top:50%; height: calc(4px * var(--k));
+  transform: translateY(-50%); background: var(--accent);
+  border-radius: calc(2px * var(--k));
 }
+/* Round knob with a real drop shadow, the way a platform slider draws it —
+   the rotated diamond read as a game HUD tick, which is the opposite house
+   style from the rest of this menu. */
 .ow-slider .knob {
-  position:absolute; top:50%; width: calc(9px * var(--k)); height: calc(9px * var(--k));
-  background: var(--amber); transform: translate(-50%,-50%) rotate(45deg);
-  box-shadow: 0 0 calc(6px * var(--k)) rgba(255,176,42,.5);
+  position:absolute; top:50%; width: calc(15px * var(--k)); height: calc(15px * var(--k));
+  background:#fff; border-radius:50%; transform: translate(-50%,-50%);
+  box-shadow: 0 1px calc(4px * var(--k)) rgba(0,0,0,.45), 0 0 0 .5px rgba(0,0,0,.10);
 }
 .ow-slider input {
   position:absolute; inset:0; width:100%; height:100%; margin:0;
@@ -663,15 +708,31 @@ const CSS = `
 }
 .ow-btns { margin-top: calc(var(--u) * 5); display:flex; gap: calc(var(--u) * 2.5); }
 .ow-btn {
-  appearance:none; border:1px solid var(--hair); background: rgba(255,255,255,.04);
-  color: var(--ink); font-family: var(--ff); font-weight:600; text-transform:uppercase;
-  font-size: calc(11px * var(--k)); letter-spacing:.2em;
-  padding: calc(var(--u) * 2.2) calc(var(--u) * 5);
-  cursor:pointer; transition: background .12s, border-color .12s;
+  appearance:none; border:1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.07);
+  color: var(--ink); font-family: var(--ff); font-weight:500; text-transform:none;
+  font-size: calc(13.5px * var(--k)); letter-spacing:0;
+  padding: calc(var(--u) * 2.4) calc(var(--u) * 5);
+  border-radius: calc(11px * var(--k));
+  cursor:pointer; transition: background .18s ease, border-color .18s ease, transform .12s ease;
 }
-.ow-btn:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.4); }
-.ow-btn.primary { background: var(--amber); border-color: var(--amber); color:#100b02; }
-.ow-btn.primary:hover { background:#ffc251; }
+.ow-btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.24); }
+.ow-btn:active { transform: scale(.97); }
+.ow-btn.primary { background: var(--accent); border-color: var(--accent); color:#fff; font-weight:600; }
+.ow-btn.primary:hover { background:#3a9bff; border-color:#3a9bff; }
+
+/* Persistent house mark. Low ink on purpose — present, never competing. */
+.ow-watermark {
+  position:absolute; left: var(--pad); bottom: calc(var(--pad) * 1.05);
+  display:flex; align-items:center; gap: calc(var(--u) * 1.8);
+  color: rgba(226,238,247,.30);
+  text-shadow: var(--sh-hard);
+}
+.ow-watermark svg { width: calc(15px * var(--k)); height: calc(15px * var(--k)); display:block; }
+.ow-watermark span {
+  font-family: var(--fd); font-size: calc(12px * var(--k));
+  font-weight:600; letter-spacing:.01em;
+}
+.ow-watermark em { font-style:normal; font-weight:300; opacity:.72; }
 .ow-menu .hint {
   margin-top: calc(var(--u) * 4); font-size: calc(9.5px * var(--k));
   letter-spacing:.2em; color: var(--ink-3);

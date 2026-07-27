@@ -16,14 +16,22 @@
  * (very narrow, bold only) carries display numerals, and both degrade through
  * Arial Narrow / Helvetica Neue on machines without them.
  */
+/*
+ * STRIKE LEGION runs a system-native type ramp rather than the condensed
+ * military faces a milsim HUD usually reaches for. The house style is the
+ * platform UI face — SF on Apple hardware, the system stack elsewhere — set
+ * tight, mostly sentence case, leaning on weight and optical size for
+ * hierarchy instead of width and uppercase. Numerals are always tabular so
+ * the ammo counter does not jitter as digits change.
+ */
 export const FONT_STACK =
-  '"Avenir Next Condensed","DIN Alternate","Roboto Condensed","Arial Narrow",' +
-  '"Helvetica Neue",Inter,system-ui,-apple-system,sans-serif';
+  '-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",' +
+  '"Helvetica Neue",Inter,"Segoe UI",system-ui,sans-serif';
 
 /** Display face: the ammo count, banners, the menu title. */
 export const FONT_DISPLAY =
-  '"DIN Condensed","Avenir Next Condensed","Oswald","Arial Narrow",' +
-  '"Helvetica Neue",Impact,system-ui,sans-serif';
+  '-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",' +
+  '"Helvetica Neue",Inter,"Segoe UI",system-ui,sans-serif';
 
 export const FONT_MONO = '"SF Mono",ui-monospace,"Roboto Mono",Menlo,monospace';
 
