@@ -23,6 +23,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import net from 'node:net';
 import { GPU_ARGS } from './gpuargs.mjs';
+// Screenshotting a software-rasterised frame blows past playwright's 30s default.
+const SHOT_TIMEOUT = Number(process.env.OW_SHOT_TIMEOUT ?? 300000);
 
 const args = Object.fromEntries(process.argv.slice(2).map((a) => {
   const m = a.match(/^--([^=]+)(?:=(.*))?$/); return m ? [m[1], m[2] ?? true] : [a, true];
@@ -97,7 +99,7 @@ for (const name of wanted) {
     // picked up the final rendered frame before the shutter.
     await page.evaluate(() => window.__PRESENT__(2));
 
-    await page.screenshot({ path: `${OUTDIR}/${name}.png`, type: 'png' });
+    await page.screenshot({ path: `${OUTDIR}/${name}.png`, type: 'png', timeout: SHOT_TIMEOUT });
     const info = await page.evaluate('window.__RENDER_INFO__ ?? null');
     report.shots.push({ shot: name, ok: !applied?.error, info, logs: logs.filter((l) => /pageerror|\[error\]/.test(l)) });
   } catch (e) {

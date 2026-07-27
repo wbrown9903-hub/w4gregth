@@ -1,5 +1,7 @@
 import { chromium } from 'playwright';
 import { GPU_ARGS } from './gpuargs.mjs';
+// Screenshotting a software-rasterised frame blows past playwright's 30s default.
+const SHOT_TIMEOUT = Number(process.env.OW_SHOT_TIMEOUT ?? 300000);
 const URL = process.argv[2];
 const b = await chromium.launch({ headless:true, args:[...GPU_ARGS,'--ignore-gpu-blocklist','--mute-audio'] });
 const p = await b.newPage({ viewport:{width:1600,height:900} });
@@ -10,7 +12,7 @@ await p.waitForFunction('window.__READY__===true',null,{timeout:90000});
 const bootMs = Date.now()-t0;
 await p.evaluate(()=>window.__APPLY_SHOT__('hero'));
 await p.evaluate(()=>new Promise(d=>{let i=0;const t=()=>++i>=90?d():requestAnimationFrame(t);requestAnimationFrame(t)}));
-await p.screenshot({path:'shots/live-verify.png'});
+await p.screenshot({path:'shots/live-verify.png', timeout: SHOT_TIMEOUT});
 const info = await p.evaluate(()=>window.__RENDER_INFO__);
 console.log(JSON.stringify({url:URL, http:resp.status(), bootMs, ready:true, calls:info.calls, tris:info.tris, errors:errs.slice(0,6)},null,2));
 await b.close();
