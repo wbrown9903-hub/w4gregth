@@ -15,6 +15,7 @@ import { AudioSystem } from './audio/index.js';
 
 import { installShotApi } from './dev/shots.js';
 import { prewarm } from './core/prewarm.js';
+import { runLauncher } from './core/launcher.js';
 
 const params = new URLSearchParams(location.search);
 const capture = params.get('capture') === '1';
@@ -23,18 +24,6 @@ const capture = params.get('capture') === '1';
 // because tools that measure real frame pacing (tools/perf.mjs) need the loop to
 // free-run. See the long comment in src/dev/shots.js.
 const lockstep = capture && params.get('lockstep') === '1';
-
-const config = createConfig({
-  // `ultra` is a benchmark setting, not a sane default for whoever opens the
-  // link — it is the preset that makes the game look like it never loads on
-  // mid-range hardware. Capture keeps ultra so shots stay comparable with the
-  // existing baselines; everyone else gets something that actually runs, and
-  // can opt up with ?q=ultra.
-  quality: params.get('q') ?? (capture ? 'ultra' : 'medium'),
-  // ?rs=0.35 pins the internal buffer below whatever the preset asks for.
-  renderScaleOverride: params.get('rs') != null ? Number(params.get('rs')) : null,
-  deterministic: capture,
-});
 
 const canvas = document.getElementById('game');
 
@@ -47,8 +36,8 @@ const canvas = document.getElementById('game');
  * describe. Nothing about the splash may depend on wall-clock timing.
  */
 const bootEl = document.getElementById('sl-boot');
-const bootFill = document.getElementById('sl-fill');
-const bootStatus = document.getElementById('sl-status');
+let bootFill = document.getElementById('sl-fill');
+let bootStatus = document.getElementById('sl-status');
 if (capture) bootEl?.remove();
 
 const setBoot = (pct, label) => {
@@ -66,6 +55,34 @@ const dismissBoot = () => {
 };
 
 setBoot(0.05, 'Loading systems');
+
+/*
+ * Ask before spending. Boot generates every texture, mesh and shader in the
+ * game, and that cost scales with the preset — so on a machine that cannot
+ * cope, committing first and offering the quality controls afterwards means
+ * the tab appears to hang with no way to intervene. The launcher runs before
+ * engine construction and is skipped entirely for capture, an explicit ?q=,
+ * or ?launch=0.
+ */
+const launch = await runLauncher({ capture, params, root: bootEl });
+if (launch.shown) {
+  // The launcher rebuilt the progress readout when it dismissed itself.
+  bootFill = document.getElementById('sl-fill');
+  bootStatus = document.getElementById('sl-status');
+}
+
+const config = createConfig({
+  // `ultra` is a benchmark setting, not a sane default for whoever opens the
+  // link — it is the preset that makes the game look like it never loads on
+  // mid-range hardware. Capture keeps ultra so shots stay comparable with the
+  // existing baselines; everyone else gets something that actually runs, and
+  // can opt up with ?q=ultra.
+  quality: launch.quality ?? (capture ? 'ultra' : 'medium'),
+  // ?rs=0.35 pins the internal buffer below whatever the preset asks for.
+  renderScaleOverride: launch.renderScale ?? null,
+  deterministic: capture,
+});
+
 
 const engine = new Engine({ canvas, config });
 
