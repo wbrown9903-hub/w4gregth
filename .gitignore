@@ -14,3 +14,7 @@ demo/
 .tmp-demo/
 .tmp-rend/
 revcrops/
+
+# Desktop shell build output
+desktop/node_modules/
+desktop/out/
