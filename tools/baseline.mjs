@@ -31,6 +31,9 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => {
   const m = a.match(/^--([^=]+)(?:=(.*))?$/); return m ? [m[1], m[2] ?? true] : [a, true];
 }));
 
+// Boot budget. 90s is ample on a GPU but a coin flip under software
+// rasterisation, where shader prewarm alone runs ~60s.
+const BOOT_TIMEOUT = Number(args.timeout ?? process.env.OW_BOOT_TIMEOUT ?? 600000);
 const PORT = Number(args.port ?? 5173);
 const W = Number(args.w ?? 1920);
 const H = Number(args.h ?? 1080);
@@ -65,8 +68,8 @@ const report = { ok: true, outDir: OUTDIR, size: `${W}x${H}`, isolated: true, se
 
 // Discover the shot list from a throwaway page.
 const probe = await browser.newPage({ viewport: { width: W, height: H } });
-await probe.goto(`http://127.0.0.1:${PORT}/?capture=1&lockstep=1`, { waitUntil: 'domcontentloaded', timeout: 90000 });
-await probe.waitForFunction('window.__READY__ === true', null, { timeout: 90000 });
+await probe.goto(`http://127.0.0.1:${PORT}/?capture=1&lockstep=1`, { waitUntil: 'domcontentloaded', timeout: BOOT_TIMEOUT });
+await probe.waitForFunction('window.__READY__ === true', null, { timeout: BOOT_TIMEOUT });
 const all = await probe.evaluate('Object.keys(window.__SHOTS__ ?? {})');
 await probe.close();
 
@@ -79,8 +82,8 @@ for (const name of wanted) {
   page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`));
   try {
     await page.goto(`http://127.0.0.1:${PORT}/?capture=1&lockstep=1&shot=${encodeURIComponent(name)}${EXTRA}`,
-      { waitUntil: 'domcontentloaded', timeout: 90000 });
-    await page.waitForFunction('window.__READY__ === true', null, { timeout: 90000 });
+      { waitUntil: 'domcontentloaded', timeout: BOOT_TIMEOUT });
+    await page.waitForFunction('window.__READY__ === true', null, { timeout: BOOT_TIMEOUT });
 
     const applied = await page.evaluate(
       ({ s, settle }) => window.__APPLY_SHOT__(s, { grabFrame: settle }), { s: name, settle: SETTLE });
