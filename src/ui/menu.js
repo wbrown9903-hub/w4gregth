@@ -1,6 +1,6 @@
 import { el, setText, setStyle, clamp, damp, ease } from './util.js';
 
-const PRESETS = ['low', 'medium', 'high', 'ultra'];
+const PRESETS = ['potato', 'low', 'medium', 'high', 'ultra'];
 
 /**
  * Pause / settings menu.
@@ -55,7 +55,18 @@ export class PauseMenu {
       this.ctx.config.sensitivity = 0.0022 * v;
       this.ctx.events.emit('ui:sensitivity', { value: this.ctx.config.sensitivity, multiplier: v });
       return v.toFixed(2);
-    });
+    }, (v) => v.toFixed(2));
+
+    // ---- resolution scale ------------------------------------------------
+    // Independent of the preset, because resolution is the dominant cost in
+    // this renderer and it is the knob people actually need when a machine
+    // cannot cope. Applying it resizes every render target, so it is pushed
+    // through the engine's normal resize path rather than poked in directly.
+    this.rscale = this._slider('Resolution Scale', 0.25, 1.0, 0.05, (v) => {
+      const applied = this.ctx.config.setRenderScale(v);
+      this.ctx.events.emit('ui:renderscale', { value: applied });
+      return `${Math.round(applied * 100)}%`;
+    }, (v) => `${Math.round(v * 100)}%`);
 
     // ---- field of view ---------------------------------------------------
     this.fov = this._slider('Field Of View', 65, 120, 1, (v) => {
@@ -67,7 +78,7 @@ export class PauseMenu {
       }
       this.ctx.events.emit('ui:fov', { value: v });
       return String(v | 0);
-    });
+    }, (v) => String(v | 0));
 
     // ---- invert look -----------------------------------------------------
     const invRow = this._row('Invert Look');
@@ -94,11 +105,25 @@ export class PauseMenu {
     this.resumeBtn.addEventListener('click', () => this.close());
     const reset = el('button', 'ow-btn', btns, 'Defaults');
     reset.type = 'button';
+    // Writes config directly rather than driving the sliders: slider.set() is
+    // deliberately silent, so poking it would move the handle without changing
+    // anything. syncFromConfig then pulls the handles back into agreement.
     reset.addEventListener('click', () => {
-      this.sens.set(1);
-      this.fov.set(80);
-      this.ctx.config.invertY = false;
-      this.setQuality('ultra');
+      const cfg = this.ctx.config;
+      cfg.sensitivity = 0.0022;
+      cfg.fov = 80;
+      if (this.ctx.camera) {
+        this.ctx.camera.fov = 80;
+        this.ctx.camera.updateProjectionMatrix();
+      }
+      cfg.invertY = false;
+      cfg.setRenderScale(null); // hand resolution back to the preset
+      this.ctx.events.emit('ui:sensitivity', { value: cfg.sensitivity, multiplier: 1 });
+      this.ctx.events.emit('ui:fov', { value: 80 });
+      // 'medium', not 'ultra' — ultra is a benchmark setting, and resetting a
+      // struggling machine onto it is how you make Defaults look like a crash.
+      this.setQuality('medium');
+      this.ctx.events.emit('ui:renderscale', { value: cfg.q.renderScale });
     });
     el('div', 'hint', inner, 'ESC RESUME · WASD MOVE · SHIFT SPRINT · R RELOAD · F USE');
 
@@ -115,7 +140,14 @@ export class PauseMenu {
     return r;
   }
 
-  _slider(name, min, max, step, apply) {
+  /**
+   * `apply` runs only on real user input and owns the side effect. `format`
+   * renders the readout without one, so `set()` can reflect current config
+   * without writing it back — which for Resolution Scale is the difference
+   * between the slider showing the preset's value and permanently pinning it
+   * the moment the menu is opened.
+   */
+  _slider(name, min, max, step, apply, format) {
     const row = this._row(name);
     const wrap = el('div', 'ow-slider', row);
     el('div', 'track', wrap);
@@ -128,18 +160,19 @@ export class PauseMenu {
     input.step = String(step);
     const val = el('div', 'val', row, '');
 
-    const paint = (v) => {
+    const paint = (v, silent) => {
       const t = (v - min) / (max - min);
       setStyle(fill, 'width', (t * 100).toFixed(2) + '%');
       setStyle(knob, 'left', (t * 100).toFixed(2) + '%');
-      setText(val, apply(v) ?? String(v));
+      const label = silent ? format?.(v) ?? String(v) : apply(v) ?? String(v);
+      setText(val, label);
     };
-    input.addEventListener('input', () => paint(parseFloat(input.value)));
+    input.addEventListener('input', () => paint(parseFloat(input.value), false));
     const api = {
       set: (v) => {
         const c = clamp(v, min, max);
         input.value = String(c);
-        paint(c);
+        paint(c, true);
       },
     };
     return api;
@@ -162,6 +195,9 @@ export class PauseMenu {
     for (const [b, v] of this.invBtns) b.classList.toggle('on', !!cfg.invertY === v);
     this.sens?.set((cfg.sensitivity ?? 0.0022) / 0.0022);
     this.fov?.set(cfg.fov ?? 80);
+    // Reflects the preset's own scale when nothing is pinned, so switching
+    // preset visibly moves the slider instead of leaving it stale.
+    this.rscale?.set(cfg.renderScaleOverride ?? cfg.q?.renderScale ?? 1);
   }
 
   toggle() {

@@ -31,6 +31,8 @@ const config = createConfig({
   // existing baselines; everyone else gets something that actually runs, and
   // can opt up with ?q=ultra.
   quality: params.get('q') ?? (capture ? 'ultra' : 'medium'),
+  // ?rs=0.35 pins the internal buffer below whatever the preset asks for.
+  renderScaleOverride: params.get('rs') != null ? Number(params.get('rs')) : null,
   deterministic: capture,
 });
 

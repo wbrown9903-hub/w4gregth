@@ -17,7 +17,11 @@ import { createComposite, createFxaa, createDebug, createViewComposite } from '.
 import { buildFallbackEnvironment } from './env.js';
 import { RenderProbeScene } from './probe.js';
 
-const QUALITY_LEVEL = { low: 0, medium: 1, high: 2, ultra: 3 };
+// Gates optional passes: >=1 contact shadows + DoF, >=2 six-level bloom + 4x
+// viewmodel MSAA. `potato` sits at the floor with `low`, since level 0 already
+// turns off everything optional. Anything missing here must NOT fall through to
+// ultra — that would hand the weakest preset the most expensive passes.
+const QUALITY_LEVEL = { potato: 0, low: 0, medium: 1, high: 2, ultra: 3 };
 
 /**
  * Registration range at or below which a punctual light counts as a room/street
@@ -130,9 +134,21 @@ export class RenderSystem {
     const cfg = ctx.config;
     const q = cfg.q;
     this.q = q;
-    this.qLevel = QUALITY_LEVEL[cfg.quality] ?? 3;
+    this.qLevel = QUALITY_LEVEL[cfg.quality] ?? 1;
     this.rng = ctx.rng.fork();
     this.frame = 0;
+
+    // Render targets are sized in resize(), which the engine only calls when
+    // the window changes. Both the resolution slider and the preset segments
+    // change the internal buffer size, so they have to ask for a resize
+    // explicitly — otherwise the setting appears to do nothing until you
+    // happen to drag the window edge.
+    const requestResize = () => {
+      this.qLevel = QUALITY_LEVEL[cfg.quality] ?? this.qLevel;
+      this.resize(globalThis.innerWidth, globalThis.innerHeight, ctx);
+    };
+    ctx.events.on('ui:renderscale', requestResize);
+    ctx.events.on('ui:quality', requestResize);
 
     // ---- renderer -------------------------------------------------------
     const renderer = new THREE.WebGLRenderer({
