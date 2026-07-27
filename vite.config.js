@@ -13,7 +13,17 @@ export default defineConfig({
     hmr: process.env.OW_NO_HMR ? false : undefined,
   },
   preview: { host: '127.0.0.1' },
-  build: { target: 'es2022', sourcemap: true, chunkSizeWarningLimit: 4096 },
+  // Relative base so the same build works served from a domain root, from a
+  // GitHub Pages project subpath (/<repo>/), and from the desktop shell's
+  // loopback server — without rebuilding for each.
+  base: './',
+  build: {
+    target: 'es2022',
+    // The sourcemap is ~6.6 MB against a ~500 kB gzipped bundle. Useful
+    // locally, dead weight for anyone loading this over the public internet.
+    sourcemap: process.env.SL_SOURCEMAP === '1',
+    chunkSizeWarningLimit: 4096,
+  },
   // Large binary game assets served verbatim.
   assetsInclude: ['**/*.ktx2', '**/*.hdr', '**/*.exr', '**/*.bin', '**/*.glb'],
 });

@@ -25,7 +25,12 @@ const capture = params.get('capture') === '1';
 const lockstep = capture && params.get('lockstep') === '1';
 
 const config = createConfig({
-  quality: params.get('q') ?? 'ultra',
+  // `ultra` is a benchmark setting, not a sane default for whoever opens the
+  // link — it is the preset that makes the game look like it never loads on
+  // mid-range hardware. Capture keeps ultra so shots stay comparable with the
+  // existing baselines; everyone else gets something that actually runs, and
+  // can opt up with ?q=ultra.
+  quality: params.get('q') ?? (capture ? 'ultra' : 'medium'),
   deterministic: capture,
 });
 

@@ -12,6 +12,59 @@ Click the canvas to lock the cursor. **WASD** move · **mouse** aim · **LMB** f
 **RMB** ADS · **R** reload · **Shift** sprint · **Ctrl** crouch · **Space** jump ·
 **Q/E** lean · **Esc** pause.
 
+## Share it with other people
+
+The game has no backend — the build is plain static files, so any static host
+works and all of these are free.
+
+**GitHub Pages (automatic).** `.github/workflows/deploy.yml` builds and publishes
+on every push. Enable it once: repo **Settings → Pages → Source: GitHub Actions**.
+The site lands at `https://<user>.github.io/<repo>/`.
+
+**Anything else.** `npm run build`, then drag the `dist/` folder onto
+[netlify.com/drop](https://app.netlify.com/drop), or `npx vercel deploy dist`.
+
+Everyone who opens the link plays their own session against the AI. There is no
+networked play — see the note below.
+
+### Performance
+
+Defaults to the `medium` preset. Anyone can change it live in the pause menu, or
+up front with a query parameter:
+
+```
+?q=low      # 0.72x render scale — use this if it stutters
+?q=medium   # 0.85x, the default
+?q=high     # native resolution
+?q=ultra    # 4096 shadow maps, SSR, full volumetrics — a benchmark setting
+?prewarm=0  # skip the 170-program shader pre-compile; boots faster, stutters early
+```
+
+Resolution is the dominant cost. A smaller window is a direct linear win.
+
+### Desktop build
+
+For anyone who cannot get it to load in a browser at all:
+
+```bash
+npm run build
+cd desktop && npm install && npm start
+SL_QUALITY=low npm start          # if it runs slow
+```
+
+Electron *is* Chromium, so this is not faster than the same machine's browser.
+What it buys is `--ignore-gpu-blocklist`: Chrome refuses hardware acceleration on
+blocklisted drivers and silently drops to software rasterisation, which is the
+most common cause of "it never loads" on otherwise capable hardware.
+`npm run dist` in `desktop/` packages a `.dmg` / `.exe` / `.AppImage`.
+
+### No networked multiplayer
+
+There is none, and adding it is a real project rather than a setting: the game
+would need an authoritative server, state replication, client-side prediction,
+entity interpolation and lag compensation for hitscan weapons. Nothing in the
+current codebase is written with a network boundary in mind.
+
 ---
 
 ## Fork changes
