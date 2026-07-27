@@ -23,6 +23,9 @@ const args = Object.fromEntries(
   })
 );
 
+// Boot budget. 90s is ample on a GPU but a coin flip under software
+// rasterisation, where shader prewarm alone runs ~60s.
+const BOOT_TIMEOUT = Number(args.timeout ?? process.env.OW_BOOT_TIMEOUT ?? 600000);
 const PORT = Number(args.port ?? 5173);
 const W = Number(args.w ?? 1920);
 const H = Number(args.h ?? 1080);
@@ -80,8 +83,8 @@ mkdirSync(OUTDIR, { recursive: true });
 const report = { ok: true, outDir: OUTDIR, size: `${W}x${H}`, shots: [], errors: [] };
 
 try {
-  await page.goto(`http://127.0.0.1:${PORT}/?capture=1`, { waitUntil: 'domcontentloaded', timeout: 90000 });
-  await page.waitForFunction('window.__READY__ === true', null, { timeout: 90000 });
+  await page.goto(`http://127.0.0.1:${PORT}/?capture=1`, { waitUntil: 'domcontentloaded', timeout: BOOT_TIMEOUT });
+  await page.waitForFunction('window.__READY__ === true', null, { timeout: BOOT_TIMEOUT });
 
   const all = await page.evaluate('Object.keys(window.__SHOTS__ ?? {})');
   const wanted = args.shots ? String(args.shots).split(',').map((s) => s.trim()) : all;
