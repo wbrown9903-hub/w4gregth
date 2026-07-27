@@ -720,14 +720,20 @@ const CSS = `
 .ow-btn.primary { background: var(--accent); border-color: var(--accent); color:#fff; font-weight:600; }
 .ow-btn.primary:hover { background:#3a9bff; border-color:#3a9bff; }
 
-/* Persistent house mark. Low ink on purpose — present, never competing. */
+/* Persistent house mark. Low ink on purpose — present, never competing.
+   Top-right is the one corner the HUD leaves free: bottom-left is the health
+   block, bottom-right the ammo panel, top-left the minimap and top-centre the
+   compass. Sitting it bottom-left overprinted the health bar outright. */
 .ow-watermark {
-  position:absolute; left: var(--pad); bottom: calc(var(--pad) * 1.05);
+  position:absolute; right: var(--pad); top: calc(var(--pad) * 1.5);
   display:flex; align-items:center; gap: calc(var(--u) * 1.8);
-  color: rgba(226,238,247,.30);
+  color: rgba(226,238,247,.34);
   text-shadow: var(--sh-hard);
 }
-.ow-watermark svg { width: calc(15px * var(--k)); height: calc(15px * var(--k)); display:block; }
+.ow-watermark svg {
+  width: calc(16px * var(--k)); height: calc(16px * var(--k));
+  display:block; flex:none; overflow:visible;
+}
 .ow-watermark span {
   font-family: var(--fd); font-size: calc(12px * var(--k));
   font-weight:600; letter-spacing:.01em;
