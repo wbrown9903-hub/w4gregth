@@ -475,15 +475,28 @@ export class RenderSystem {
       // level (see _updateViewRig); fill, rim and hemisphere are ratios of it.
       viewKeyScale: 0.55,
       viewKeyMax: 2.6,
-      viewFillRatio: 0.3,
-      viewRimRatio: 0.5,
-      // 0.35 hemisphere against a ~2.2 daylight key, expressed as a ratio so it
-      // follows the time of day instead of blowing the gun out at night.
-      viewHemiRatio: 0.16,
-      // Warm ground bounce from below. Sized to lift the glove out of the
-      // handguard's cast shadow without competing with the key: at 0.34 of the
-      // key it is ~1.5 stops down, which is about what a sand street returns.
-      viewBounceRatio: 0.34,
+      // Ratios below are the LIGHTING RATIO, and it is the thing that decides
+      // whether the weapon has form. These previously summed to 1.30x the key
+      // (0.30 + 0.50 + 0.16 + 0.34): more fill than key, i.e. a key:fill ratio
+      // under 1:1, which is the textbook recipe for a flat, shadowless subject.
+      // Every surface was lit from somewhere by something, so nothing on the
+      // weapon had a dark side to define its shape, and no amount of albedo
+      // tuning could compensate — the signal simply was not there.
+      //
+      // They now sum to 0.72x, a key:fill near 1.4:1, with the key carrying the
+      // modelling and the rest only keeping the shadow side legible. That also
+      // drops total viewmodel irradiance about 25%, which is the same direction
+      // the "zero-albedo sleeve still renders cream" measurement in
+      // weapons/materials.js was pointing.
+      viewFillRatio: 0.14,
+      viewRimRatio: 0.32,
+      // Hemisphere, expressed as a ratio so it follows the time of day instead
+      // of blowing the gun out at night.
+      viewHemiRatio: 0.1,
+      // Warm ground bounce from below, lifting the glove out of the handguard's
+      // cast shadow. Now that the key actually casts that shadow this matters
+      // more, but it has to stay well under the key or it cancels it.
+      viewBounceRatio: 0.16,
       viewKeyGamma: 0.65,
       shadowStrength: 1.0,
       sunSoftness: 0.024,
