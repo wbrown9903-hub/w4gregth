@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import { GPU_ARGS } from './gpuargs.mjs';
+import { grab } from './grab.mjs';
 // Screenshotting a software-rasterised frame blows past playwright's 30s default.
 const SHOT_TIMEOUT = Number(process.env.OW_SHOT_TIMEOUT ?? 300000);
 const PORT=5402;
@@ -13,7 +14,7 @@ await page.evaluate((n)=>new Promise(d=>{let i=0;const t=()=>(++i>=n?d():request
 for(const m of ['ao','contact','skyvis']){
   await page.evaluate((mm)=>{window.__ENGINE__.ctx.get('render').debugView=mm;},m);
   await page.evaluate((n)=>new Promise(d=>{let i=0;const t=()=>(++i>=n?d():requestAnimationFrame(t));requestAnimationFrame(t)}),8);
-  await page.screenshot({path:`/tmp/dbg-${shot}-${m}.png`, timeout: SHOT_TIMEOUT});
+  await grab(page, `/tmp/dbg-${shot}-${m}.png`);
 }
 await browser.close();
 console.log('ok');

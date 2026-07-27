@@ -12,6 +12,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import net from 'node:net';
 import { GPU_ARGS } from './gpuargs.mjs';
+import { grab } from './grab.mjs';
 // Screenshotting a software-rasterised frame blows past playwright's 30s default.
 const SHOT_TIMEOUT = Number(process.env.OW_SHOT_TIMEOUT ?? 300000);
 
@@ -105,7 +106,7 @@ try {
       SETTLE
     );
     const file = `${OUTDIR}/${name}.png`;
-    await page.screenshot({ path: file, type: 'png', timeout: SHOT_TIMEOUT });
+    await grab(page, file);
     const info = await page.evaluate('window.__RENDER_INFO__ ?? null');
     report.shots.push({
       shot: name,

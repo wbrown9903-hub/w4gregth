@@ -25,6 +25,7 @@ import { mkdirSync, existsSync, rmSync, writeFileSync, readFileSync, readdirSync
 import { dirname, resolve, join } from 'node:path';
 import net from 'node:net';
 import { GPU_ARGS } from './gpuargs.mjs';
+import { grab } from './grab.mjs';
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
@@ -142,7 +143,7 @@ try {
         })
     );
     telemetry.push(info);
-    await page.screenshot({ path: join(TMP, `f${pad(i)}.jpg`), type: 'jpeg', quality: QUALITY });
+    await grab(page, join(TMP, `f${pad(i)}.jpg`), { format: 'jpeg', quality: QUALITY });
 
     if (i - lastReport >= 60 || i === FRAMES - 1) {
       lastReport = i;

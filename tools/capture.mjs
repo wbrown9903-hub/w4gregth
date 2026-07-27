@@ -17,6 +17,7 @@ import { mkdirSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import net from 'node:net';
 import { GPU_ARGS } from './gpuargs.mjs';
+import { grab } from './grab.mjs';
 // Screenshotting a software-rasterised frame blows past playwright's 30s default.
 const SHOT_TIMEOUT = Number(process.env.OW_SHOT_TIMEOUT ?? 300000);
 
@@ -122,7 +123,7 @@ try {
     );
 
     mkdirSync(dirname(OUT), { recursive: true });
-    await page.screenshot({ path: OUT, type: 'png', timeout: SHOT_TIMEOUT });
+    await grab(page, OUT);
 
     const info = await page.evaluate('window.__RENDER_INFO__ ?? null');
     console.log(JSON.stringify({ ok: true, out: OUT, shot: SHOT, w: W, h: H, info }, null, 2));
