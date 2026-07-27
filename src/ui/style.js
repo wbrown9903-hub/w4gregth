@@ -730,9 +730,14 @@ const CSS = `
   color: rgba(226,238,247,.34);
   text-shadow: var(--sh-hard);
 }
+/* The mark needs its own seat. Text runs in this HUD survive a blown-out sky
+   because they carry --sh-hard; an SVG gets no text-shadow, so a light stroke
+   on a sunlit wall disappeared completely while the wordmark beside it stayed
+   perfectly legible. */
 .ow-watermark svg {
   width: calc(16px * var(--k)); height: calc(16px * var(--k));
   display:block; flex:none; overflow:visible;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.95)) drop-shadow(0 0 2px rgba(0,0,0,.55));
 }
 .ow-watermark span {
   font-family: var(--fd); font-size: calc(12px * var(--k));
