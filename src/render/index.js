@@ -291,6 +291,38 @@ export class RenderSystem {
       l.castShadow = false;
       ctx.viewScene.add(l, l.target);
     }
+    // The key casts, and only the key. Without a shadowing light in here the
+    // viewmodel receives five unshadowed lobes and every surface is lit from
+    // somewhere, so the weapon has no form: no occlusion under the handguard or
+    // the rail, no optic shadow across the receiver, no gaps between the
+    // fingers. That reads as a flat slab no amount of albedo tuning can fix.
+    // One shadowing key plus unshadowed fill/rim/bounce is the standard rig.
+    //
+    // This is nearly free. The view scene is ~137k tris drawn into a frustum
+    // 1.1 m across, versus the world cascades covering 180 m.
+    this.viewSun.castShadow = true;
+    {
+      const vs = this.viewSun.shadow;
+      const size = Math.min(ctx.config?.q?.shadowMapSize ?? 2048, 2048);
+      vs.mapSize.set(size, size);
+      // _placeViewLight parks the light 4 m from the camera along its direction
+      // and aims it at the camera, so the arms and weapon — which live inside
+      // about 0.8 m of the eye — sit in a thin slab around that 4 m mark.
+      const c = vs.camera;
+      c.left = -0.55;
+      c.right = 0.55;
+      c.top = 0.55;
+      c.bottom = -0.55;
+      c.near = 3.1;
+      c.far = 5.3;
+      c.updateProjectionMatrix();
+      // Bias is in world units and this rig is scaled in centimetres, so the
+      // usual defaults are enormous here: a 12 mm normalBias is most of a
+      // finger and would unpeg the contact shadows entirely.
+      vs.bias = -0.0002;
+      vs.normalBias = 0.004;
+      vs.radius = 2.2;
+    }
     ctx.viewScene.add(this.viewFill);
     // The frame loop skips the viewmodel pass when nothing but our own rig is
     // in there; remember how many children that is.

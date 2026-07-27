@@ -637,10 +637,13 @@ export class Arm {
     this.thumb.root.rotation.set(0.2, -0.95, -0.5);
     this.glove.add(this.thumb.root);
 
-    // Same rule as the weapon: receive the world sun shadow, cast nothing.
+    // Same rule as the weapon: receive the world sun shadow, and cast within the
+    // view scene only (never into the world cascades). The self-shadowing is
+    // what separates the fingers from each other and from the handguard — the
+    // fingers are modelled in full but without it they merge into one slab.
     this.root.traverse((o) => {
       if (o.isMesh) {
-        o.castShadow = false;
+        o.castShadow = true;
         o.receiveShadow = true;
         o.frustumCulled = false;
       }

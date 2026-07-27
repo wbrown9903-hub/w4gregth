@@ -373,7 +373,13 @@ export class Viewmodel {
         // scene), but it absolutely must RECEIVE the sun shadow: without this the
         // gun is lit at full sun while the street around it is in shade, which is
         // the single most obvious "pasted-on sticker" tell.
-        mesh.castShadow = false;
+        //
+        // It does cast WITHIN its own scene, though — those are different things,
+        // and conflating them is what left the rig with no self-occlusion at all.
+        // The view scene's key light (render/index.js) is the only caster; this
+        // is what puts a shadow under the handguard, across the receiver from the
+        // optic, and between the fingers.
+        mesh.castShadow = true;
         mesh.receiveShadow = true;
         mesh.frustumCulled = false;
         parent.add(mesh);
