@@ -79,8 +79,16 @@ const FRAG = /* glsl */ `
     float d = length(uCam - vW);
     col = mix(col, uFogCol, smoothstep(uFogNear, uFogFar, d));
 
-    // Gentle filmic knee keeps saturation instead of clipping to white.
-    col = col / (col + 0.72) * 1.35;
+    // Filmic knee. The first pass used a 0.72 shoulder with a 1.35 gain, which
+    // lifted midtones so hard that dark shingle browns landed on top of the
+    // stucco wall tones and the whole street rendered as one flat orange mass.
+    // A higher shoulder keeps the toe dark so roofs stay separated from walls.
+    col = col / (col + 1.05) * 1.85;
+
+    // Push saturation back after the knee — tonemapping always desaturates,
+    // and this palette lives or dies on colour separation rather than value.
+    float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    col = mix(vec3(lum), col, 1.28);
     gl_FragColor = vec4(col, 1.0);
   }
 `;
@@ -150,11 +158,22 @@ export function makeSky() {
  * creams and brick reds, which is exactly why they need saturating for this
  * style — sampled literally they render as grey mush.
  */
+/*
+ * A real Texas subdivision is a narrow band of tan stucco and red brick. Sampled
+ * literally that is one hue across 1,500 houses, which is why the first pass
+ * read as an orange smear. The range is widened here — sages, cool greys, a few
+ * brick reds — which is the same liberty the reference art direction takes with
+ * real-world materials.
+ */
 export const HOUSE_COLORS = [
   '#d9b892', '#c8a074', '#e0c9a6', '#b98d6a', '#cf9f7d',
-  '#d6b7a0', '#bf9a72', '#e3cdb0', '#c58f6d', '#d2ab84',
+  '#a8a189', '#8f9c8a', '#b5b2a4', '#9d8f7e', '#c2b49c',
+  '#b0705a', '#a35d4c', '#cc9a86', '#8c6f63', '#d7c4ae',
 ].map((h) => new THREE.Color(h));
 
+/** Deliberately much darker than the walls — roof/wall contrast is most of
+ *  what makes a row of houses read as separate objects at distance. */
 export const ROOF_COLORS = [
-  '#6b4f43', '#7a5a49', '#5d4438', '#856152', '#4f3a31', '#93705c',
+  '#3b2f2a', '#463731', '#2f2724', '#523f36', '#38302c',
+  '#4a3a42', '#5a3b32', '#333a3d',
 ].map((h) => new THREE.Color(h));

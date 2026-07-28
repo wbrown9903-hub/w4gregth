@@ -102,6 +102,11 @@ function hipRoof(buf, rect, baseY, rise, overhang, col) {
 
   const face = (a, b, c, d) => {
     const n = norm(b[0] - a[0], b[1] - a[1], b[2] - a[2], c[0] - a[0], c[1] - a[1], c[2] - a[2]);
+    // Winding here depends on the rectangle's arbitrary edge direction, so half
+    // the slopes come out facing down and shade as though lit from underground
+    // — which renders every roof in the neighbourhood black. A roof face always
+    // points up, so this is unambiguous to correct.
+    if (n[1] < 0) { n[0] = -n[0]; n[1] = -n[1]; n[2] = -n[2]; }
     if (d) buf.quad(a, b, c, d, n, col, [0.82, 0.82, 1, 1]);
     else buf.tri(a, b, c, n, col, [0.82, 0.82, 1]);
   };
@@ -123,6 +128,88 @@ function flatRoof(buf, pts, y, col) {
   }
 }
 
+/* ------------------------------------------------------------------ trees */
+
+const TRUNK = new THREE.Color('#6b4a32');
+const CANOPY = ['#4e7a34', '#5d8a3a', '#436a2c', '#6b9440', '#537f38'].map((h) => new THREE.Color(h));
+
+/**
+ * Low-poly tree: a tapered trunk and two stacked cones.
+ *
+ * Cones rather than spheres because the silhouette is what survives at this
+ * shading level, and a hard conical outline reads as "stylised tree" where a
+ * smooth blob reads as "untextured sphere".
+ */
+function tree(buf, x, z, h, scale) {
+  const canopy = CANOPY[(h * CANOPY.length) | 0];
+  const th = 1.6 * scale;
+  const tr = 0.19 * scale;
+
+  // Trunk: a 5-sided prism. Six would not read any rounder at this size.
+  const SIDES = 5;
+  for (let i = 0; i < SIDES; i++) {
+    const a0 = (i / SIDES) * Math.PI * 2;
+    const a1 = ((i + 1) / SIDES) * Math.PI * 2;
+    const p0 = [x + Math.cos(a0) * tr, 0, z + Math.sin(a0) * tr];
+    const p1 = [x + Math.cos(a1) * tr, 0, z + Math.sin(a1) * tr];
+    const p2 = [x + Math.cos(a1) * tr * 0.7, th, z + Math.sin(a1) * tr * 0.7];
+    const p3 = [x + Math.cos(a0) * tr * 0.7, th, z + Math.sin(a0) * tr * 0.7];
+    const nx = Math.cos((a0 + a1) / 2), nz = Math.sin((a0 + a1) / 2);
+    buf.quad(p0, p1, p2, p3, [nx, 0, nz], TRUNK, [0.5, 0.5, 1, 1]);
+  }
+
+  const cone = (baseY, r, ch) => {
+    const N = 7;
+    const apex = [x, baseY + ch, z];
+    for (let i = 0; i < N; i++) {
+      const a0 = (i / N) * Math.PI * 2;
+      const a1 = ((i + 1) / N) * Math.PI * 2;
+      const p0 = [x + Math.cos(a0) * r, baseY, z + Math.sin(a0) * r];
+      const p1 = [x + Math.cos(a1) * r, baseY, z + Math.sin(a1) * r];
+      const am = (a0 + a1) / 2;
+      // Normal tilted outward and up, so the ramp shader lights the canopy as
+      // a rounded mass rather than as flat facets.
+      const n = norm(p1[0] - p0[0], 0, p1[2] - p0[2], apex[0] - p0[0], apex[1] - p0[1], apex[2] - p0[2]);
+      if (n[1] < 0) { n[0] = -n[0]; n[1] = -n[1]; n[2] = -n[2]; }
+      buf.tri(p0, p1, apex, [n[0] * 0.7 + Math.cos(am) * 0.3, Math.abs(n[1]) * 0.6 + 0.4, n[2] * 0.7 + Math.sin(am) * 0.3], canopy, [0.72, 0.72, 1]);
+    }
+  };
+  cone(th * 0.72, 1.5 * scale, 2.1 * scale);
+  cone(th * 1.5, 1.05 * scale, 1.9 * scale);
+}
+
+/* ---------------------------------------------------------------- windows */
+
+const GLASS = new THREE.Color('#3d5468');
+const FRAME = new THREE.Color('#efe9df');
+
+/** Windows and a front door, punched onto wall faces as proud quads. */
+function openings(buf, p0, p1, nx, nz, height, seed) {
+  const dx = p1[0] - p0[0], dz = p1[1] - p0[1];
+  const len = Math.hypot(dx, dz);
+  if (len < 3.2 || height < 2.4) return;
+  const ux = dx / len, uz = dz / len;
+  const off = 0.06; // stand proud so it never z-fights the wall
+
+  const count = Math.max(1, Math.min(3, Math.floor(len / 3.4)));
+  for (let i = 0; i < count; i++) {
+    const t = (i + 0.5) / count;
+    const cx = p0[0] + ux * len * t;
+    const cz = p0[1] + uz * len * t;
+    const w = Math.min(1.25, len / count * 0.42);
+    const isDoor = seed > 0.72 && i === (count >> 1);
+    const y0 = isDoor ? 0.02 : 1.02;
+    const y1 = isDoor ? 2.12 : 2.18;
+    if (y1 > height - 0.25) continue;
+
+    const a = [cx - ux * w + nx * off, y0, cz - uz * w + nz * off];
+    const b = [cx + ux * w + nx * off, y0, cz + uz * w + nz * off];
+    const c = [cx + ux * w + nx * off, y1, cz + uz * w + nz * off];
+    const d = [cx - ux * w + nx * off, y1, cz - uz * w + nz * off];
+    buf.quad(a, b, c, d, [nx, 0, nz], isDoor ? FRAME : GLASS, [0.7, 0.7, 1, 1]);
+  }
+}
+
 /* ------------------------------------------------------------------ build */
 
 export function buildWorld(world) {
@@ -131,6 +218,7 @@ export function buildWorld(world) {
   const roads = new Buf();
   const group = new THREE.Group();
   let target = null;
+  let treeCount = 0;
 
   // ---- roads ----
   const asphalt = new THREE.Color('#5a5550');
@@ -157,6 +245,34 @@ export function buildWorld(world) {
     }
   }
 
+  /* ---- lots ----
+   * A lawn pad and a driveway per house. Without them every building sits on
+   * undifferentiated scrub, which is the single clearest tell that a street was
+   * generated rather than built — real suburbia is legible as a row of lots
+   * long before you can make out any individual house.
+   */
+  const lots = new Buf();
+  const LAWN = ['#7f9a4e', '#8ea856', '#93a35a', '#75904a', '#a0aa62'].map((h) => new THREE.Color(h));
+  const CONCRETE = new THREE.Color('#9d9890');
+
+  const roadPoseFor = (cx, cz) => {
+    let best = null;
+    for (const r of world.roads) {
+      if (r.k < 1) continue;
+      for (let i = 0; i < r.p.length - 1; i++) {
+        const [x0, z0] = r.p[i], [x1, z1] = r.p[i + 1];
+        const dx = x1 - x0, dz = z1 - z0;
+        const l2 = dx * dx + dz * dz;
+        if (l2 < 1e-6) continue;
+        const t = Math.max(0, Math.min(1, ((cx - x0) * dx + (cz - z0) * dz) / l2));
+        const px = x0 + dx * t, pz = z0 + dz * t;
+        const d = (px - cx) ** 2 + (pz - cz) ** 2;
+        if (!best || d < best.d) best = { d, x: px, z: pz, w: r.w };
+      }
+    }
+    return best;
+  };
+
   // ---- buildings ----
   world.buildings.forEach((b, idx) => {
     const h = hash(idx);
@@ -171,12 +287,24 @@ export function buildWorld(world) {
     const pts = b.p;
     const n = pts.length - (pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1] ? 1 : 0);
 
+    // OSM does not guarantee winding direction, so an edge normal derived from
+    // the edge alone points inward for roughly half of all buildings. Those
+    // walls then shade as interior surfaces. The footprint centroid settles it:
+    // an exterior wall normal always points away from the middle.
+    let ccx = 0, ccz = 0;
+    for (let i = 0; i < n; i++) { ccx += pts[i][0]; ccz += pts[i][1]; }
+    ccx /= n; ccz /= n;
+
     for (let i = 0; i < n; i++) {
       const p0 = pts[i], p1 = pts[(i + 1) % n];
       const dx = p1[0] - p0[0], dz = p1[1] - p0[1];
       const l = Math.hypot(dx, dz);
       if (l < 0.05) continue;
-      const nx = dz / l, nz = -dx / l;
+      let nx = dz / l, nz = -dx / l;
+      const mx = (p0[0] + p1[0]) / 2 - ccx;
+      const mz = (p0[1] + p1[1]) / 2 - ccz;
+      if (nx * mx + nz * mz < 0) { nx = -nx; nz = -nz; }
+      if (isHouse || b.c === 'apartments') openings(walls, p0, p1, nx, nz, b.h, hash(idx * 5.1 + i));
       const a = [p0[0], 0, p0[1]];
       const bb = [p1[0], 0, p1[1]];
       const c = [p1[0], b.h, p1[1]];
@@ -235,8 +363,113 @@ export function buildWorld(world) {
       }
     }
 
+    // Lawn pad + driveway. Only for houses, and only where the house is close
+    // enough to a road that a driveway is a short straight run — otherwise the
+    // strip cuts across neighbouring lots to reach the carriageway.
+    if (isHouse && rect) {
+      const lawnCol = LAWN[(hash(idx * 11.3) * LAWN.length) | 0];
+      const { cx, cz, ux, uz, hw, hd } = rect;
+      const px = -uz, pz = ux;
+      const pad = 5.5;
+      const P = (u, v) => [cx + u * ux + v * px, 0.02, cz + u * uz + v * pz];
+      lots.quad(P(-hw - pad, -hd - pad), P(hw + pad, -hd - pad), P(hw + pad, hd + pad), P(-hw - pad, hd + pad),
+        [0, 1, 0], lawnCol, [1, 1, 1, 1]);
+
+      const road = roadPoseFor(cx, cz);
+      if (road && road.d < 2500) {
+        const dx = road.x - cx, dz = road.z - cz;
+        const l = Math.hypot(dx, dz) || 1;
+        const dxn = dx / l, dzn = dz / l;
+        const hwid = 1.9;
+        const ox = -dzn * hwid, oz = dxn * hwid;
+        // Start at the facade, not the centre, so the strip does not read as
+        // running out from under the house.
+        const s = Math.min(hw, hd) * 0.9;
+        const a = [cx + dxn * s + ox, 0.03, cz + dzn * s + oz];
+        const bq = [road.x + ox, 0.03, road.z + oz];
+        const c = [road.x - ox, 0.03, road.z - oz];
+        const d = [cx + dxn * s - ox, 0.03, cz + dzn * s - oz];
+        lots.quad(a, bq, c, d, [0, 1, 0], CONCRETE, [0.92, 1, 1, 0.92]);
+      }
+    }
+
     if (b.t && rect) target = { rect, h: b.h, pts: pts.slice(0, n), label: b.s || '9903 Magnolia River' };
   });
+
+  /* ---- trees ----
+   * Placed against a coarse occupancy grid rather than by offsetting from each
+   * building, which would drop them through roads and into neighbouring
+   * houses. 4 m cells: fine enough that a tree never straddles a carriageway,
+   * coarse enough that the grid stays small.
+   */
+  const trees = new Buf();
+  {
+    const bd0 = world.bounds;
+    const CELL = 4;
+    const gx0 = bd0.minX - 40, gz0 = bd0.minZ - 40;
+    const gw = Math.ceil((bd0.maxX - bd0.minX + 80) / CELL);
+    const gh = Math.ceil((bd0.maxZ - bd0.minZ + 80) / CELL);
+    const occ = new Uint8Array(gw * gh);        // 1 = road or building
+    const near = new Uint8Array(gw * gh);       // 1 = close to a building
+    const at = (x, z) => {
+      const i = Math.floor((x - gx0) / CELL);
+      const j = Math.floor((z - gz0) / CELL);
+      return i < 0 || j < 0 || i >= gw || j >= gh ? -1 : j * gw + i;
+    };
+
+    for (const r of world.roads) {
+      const pad = r.w / 2 + 2.5;
+      for (let i = 0; i < r.p.length - 1; i++) {
+        const [x0, z0] = r.p[i], [x1, z1] = r.p[i + 1];
+        const steps = Math.ceil(Math.hypot(x1 - x0, z1 - z0) / (CELL * 0.5)) + 1;
+        for (let s = 0; s <= steps; s++) {
+          const t = s / steps;
+          const px = x0 + (x1 - x0) * t, pz = z0 + (z1 - z0) * t;
+          for (let ox = -pad; ox <= pad; ox += CELL)
+            for (let oz = -pad; oz <= pad; oz += CELL) {
+              const k = at(px + ox, pz + oz);
+              if (k >= 0) occ[k] = 1;
+            }
+        }
+      }
+    }
+
+    for (const b of world.buildings) {
+      let mnx = 1e9, mxx = -1e9, mnz = 1e9, mxz = -1e9;
+      for (const [x, z] of b.p) {
+        if (x < mnx) mnx = x; if (x > mxx) mxx = x;
+        if (z < mnz) mnz = z; if (z > mxz) mxz = z;
+      }
+      for (let x = mnx - 2; x <= mxx + 2; x += CELL)
+        for (let z = mnz - 2; z <= mxz + 2; z += CELL) {
+          const k = at(x, z); if (k >= 0) occ[k] = 1;
+        }
+      for (let x = mnx - 16; x <= mxx + 16; x += CELL)
+        for (let z = mnz - 16; z <= mxz + 16; z += CELL) {
+          const k = at(x, z); if (k >= 0) near[k] = 1;
+        }
+    }
+
+    // Jittered lattice, kept only on free cells adjacent to development — so
+    // the canopy follows the streets instead of carpeting empty scrubland.
+    let n = 0;
+    for (let j = 0; j < gh; j++) {
+      for (let i = 0; i < gw; i++) {
+        const k = j * gw + i;
+        if (occ[k] || !near[k]) continue;
+        const h = hash(k * 1.37);
+        if (h > 0.30) continue;
+        const jx = (hash(k * 2.11) - 0.5) * CELL * 0.8;
+        const jz = (hash(k * 3.71) - 0.5) * CELL * 0.8;
+        // Mature suburban shade trees run 6-10 m. The first pass topped out
+        // around 4 m, which reads as shrubbery from the road.
+        tree(trees, gx0 + i * CELL + CELL / 2 + jx, gz0 + j * CELL + CELL / 2 + jz,
+             hash(k * 5.23), 1.5 + hash(k * 7.19) * 1.3);
+        n++;
+      }
+    }
+    treeCount = n;
+  }
 
   // ---- ground ----
   const bd = world.bounds;
@@ -249,8 +482,14 @@ export function buildWorld(world) {
   const gcount = groundGeo.attributes.position.count;
   const gt = new Float32Array(gcount * 3);
   const ga = new Float32Array(gcount);
-  const base = new THREE.Color('#93a05e');
-  const dry = new THREE.Color('#b0a566');
+  /* Two tones close together on purpose. The first pass ran olive to tan across
+     a 48x48 lattice on a FLAT plane, and vertex interpolation turned that into
+     metre-scale soft blobs that read unmistakably as rolling desert hills — the
+     eye interprets large smooth luminance gradients as relief even where the
+     geometry is dead level. Narrowing the range keeps the scrub variation
+     without inventing terrain that is not there. */
+  const base = new THREE.Color('#8d9558');
+  const dry = new THREE.Color('#97985c');
   for (let i = 0; i < gcount; i++) {
     const c = base.clone().lerp(dry, hash(i * 3.7));
     gt[i * 3] = c.r; gt[i * 3 + 1] = c.g; gt[i * 3 + 2] = c.b;
@@ -266,12 +505,15 @@ export function buildWorld(world) {
       roads: roads.geometry(),
       walls: walls.geometry(),
       roofs: roofs.geometry(),
+      trees: trees.geometry(),
+      lots: lots.geometry(),
     },
     target,
     stats: {
       buildings: world.buildings.length,
       roads: world.roads.length,
-      tris: (walls.pos.length + roofs.pos.length + roads.pos.length) / 9 | 0,
+      trees: treeCount,
+      tris: (walls.pos.length + roofs.pos.length + roads.pos.length + trees.pos.length + lots.pos.length) / 9 | 0,
     },
   };
 }

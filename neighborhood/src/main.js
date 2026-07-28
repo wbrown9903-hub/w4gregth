@@ -24,7 +24,7 @@ bootMsg.textContent = 'Building streets…';
 const built = buildWorld(worldData);
 const mat = makeMaterial();
 
-for (const key of ['ground', 'roads', 'walls', 'roofs']) {
+for (const key of ['ground', 'lots', 'roads', 'walls', 'roofs', 'trees']) {
   const m = new THREE.Mesh(built.geometries[key], mat);
   m.frustumCulled = key !== 'ground';
   scene.add(m);
@@ -64,13 +64,44 @@ function mergeGeometries(list) {
 const vehicle = new Vehicle(carGroup);
 const chase = new ChaseCamera(camera);
 
-/** Spawn on the road outside the target house, facing along the street. */
+/**
+ * Spawn on the carriageway outside the target house, pointing along the street.
+ *
+ * Offsetting blindly from the house centre puts the car in a back yard and the
+ * chase camera — which trails 8.4 m further back — inside the neighbouring
+ * house. That renders as a black sky with no roads, because you are looking at
+ * the inside of somebody's living room wall. So: snap to the nearest point on
+ * the nearest road and take the heading from that segment.
+ */
+function nearestRoadPose(cx, cz) {
+  let best = null;
+  for (const r of worldData.roads) {
+    for (let i = 0; i < r.p.length - 1; i++) {
+      const [x0, z0] = r.p[i];
+      const [x1, z1] = r.p[i + 1];
+      const dx = x1 - x0, dz = z1 - z0;
+      const len2 = dx * dx + dz * dz;
+      if (len2 < 1e-6) continue;
+      // Closest point on the segment, clamped to its ends.
+      const t = Math.max(0, Math.min(1, ((cx - x0) * dx + (cz - z0) * dz) / len2));
+      const px = x0 + dx * t, pz = z0 + dz * t;
+      const d = (px - cx) ** 2 + (pz - cz) ** 2;
+      if (!best || d < best.d) {
+        best = { d, x: px, z: pz, yaw: Math.atan2(dx, dz), name: r.n };
+      }
+    }
+  }
+  return best;
+}
+
 function resetToTarget() {
   const t = built.target;
-  vehicle.pos.set(t ? t.rect.cx + 9 : 0, 0, t ? t.rect.cz + 9 : 0);
+  const pose = nearestRoadPose(t ? t.rect.cx : 0, t ? t.rect.cz : 0);
+  vehicle.pos.set(pose ? pose.x : 0, 0, pose ? pose.z : 0);
+  vehicle.yaw = pose ? pose.yaw : 0;
   vehicle.vel.set(0, 0, 0);
   vehicle.speed = 0;
-  vehicle.yaw = Math.PI * 0.25;
+  if (pose) console.info('[spawn]', pose.name || '(unnamed road)', pose.x.toFixed(1), pose.z.toFixed(1));
 }
 resetToTarget();
 
@@ -156,4 +187,7 @@ function tick() {
 console.info('[world]', built.stats, built.target ? `target: ${built.target.label}` : 'no target');
 window.__STATS__ = built.stats;
 window.__CAR__ = vehicle;
+// Exposed so the capture harness can place shots on the carriageway rather
+// than at arbitrary coordinates that may sit inside a building.
+window.__SNAP__ = nearestRoadPose;
 tick();

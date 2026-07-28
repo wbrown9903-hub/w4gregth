@@ -51,8 +51,12 @@ try {
   for (const s of SHOTS) {
     await page.evaluate((v) => {
       const c = window.__CAR__;
-      c.pos.set(v.x, 0, v.z);
-      c.yaw = v.yaw;
+      // Snap to the road. Arbitrary coordinates land in back yards, and the
+      // chase camera then trails into the house behind — which is how the
+      // first capture run produced five frames of interior wall.
+      const pose = window.__SNAP__ ? window.__SNAP__(v.x, v.z) : null;
+      c.pos.set(pose ? pose.x : v.x, 0, pose ? pose.z : v.z);
+      c.yaw = pose ? pose.yaw + (v.flip ? Math.PI : 0) : v.yaw;
       c.speed = 0;
       c.vel.set(0, 0, 0);
     }, s);
